@@ -15,7 +15,7 @@ import (
 // SignInForm responsible for signIn Form rendering.
 func SignInForm() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		fp := path.Join("echoauthtest", "templates", "signIn.html")
+		fp := path.Join("templates", "signIn.html")
 
 		tmpl, err := template.ParseFiles(fp)
 		if err != nil {

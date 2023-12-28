@@ -11,13 +11,19 @@ import (
 )
 
 const (
-	accessTokenCookieName = "access-token"
+	accessTokenCookieName  = "access-token"
+	refreshTokenCookieName = "refresh-token"
 	// Just for the demo purpose, I declared a secret here. In the real-world application, you might need to get it from the env variables.
-	jwtSecretKey = "some-secret-key"
+	jwtSecretKey        = "some-secret-key"
+	jwtRefreshSecretKey = "some-refresh-secret-key"
 )
 
 func GetJWTSecret() string {
 	return jwtSecretKey
+}
+
+func GetRefreshJWTSecret() string {
+	return jwtRefreshSecretKey
 }
 
 // Create a struct that will be encoded to a JWT.
@@ -36,15 +42,14 @@ func GenerateTokensAndSetCookies(user *user.User, c echo.Context) error {
 
 	setTokenCookie(accessTokenCookieName, accessToken, exp, c)
 	setUserCookie(user, exp, c)
+	// We generate here a new refresh token and saving it to the cookie.
+	refreshToken, exp, err := generateRefreshToken(user)
+	if err != nil {
+		return err
+	}
+	setTokenCookie(refreshTokenCookieName, refreshToken, exp, c)
 
 	return nil
-}
-
-func generateAccessToken(user *user.User) (string, time.Time, error) {
-	// Declare the expiration time of the token (1h).
-	expirationTime := time.Now().Add(1 * time.Hour)
-
-	return generateToken(user, expirationTime, []byte(GetJWTSecret()))
 }
 
 // Pay attention to this function. It holds the main JWT token generation logic.
@@ -68,6 +73,20 @@ func generateToken(user *user.User, expirationTime time.Time, secret []byte) (st
 	}
 
 	return tokenString, expirationTime, nil
+}
+
+func generateAccessToken(user *user.User) (string, time.Time, error) {
+	// Declare the expiration time of the token - 1 hours.
+	expirationTime := time.Now().Add(1 * time.Hour)
+
+	return generateToken(user, expirationTime, []byte(GetJWTSecret()))
+}
+
+func generateRefreshToken(user *user.User) (string, time.Time, error) {
+	// Declare the expiration time of the token - 24 hours.
+	expirationTime := time.Now().Add(24 * time.Hour)
+
+	return generateToken(user, expirationTime, []byte(GetRefreshJWTSecret()))
 }
 
 // Here we are creating a new cookie, which will store the valid JWT token.
@@ -97,4 +116,46 @@ func setUserCookie(user *user.User, expiration time.Time, c echo.Context) {
 func JWTErrorChecker(c echo.Context, err error) error {
 	// Redirects to the signIn form.
 	return c.Redirect(http.StatusMovedPermanently, c.Echo().Reverse("userSignInForm"))
+}
+
+// TokenRefresherMiddleware middleware, which refreshes JWT tokens if the access token is about to expire.
+func TokenRefresherMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// If the user is not authenticated (no user token data in the context), don't do anything.
+		if c.Get("user") == nil {
+			return next(c)
+		}
+		// Gets user token from the context.
+		u := c.Get("user").(*jwt.Token)
+
+		claims := u.Claims.(*Claims)
+
+		// We ensure that a new token is not issued until enough time has elapsed.
+		// In this case, a new token will only be issued if the old token is within
+		// 15 mins of expiry.
+		if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) < 15*time.Minute {
+			// Gets the refresh token from the cookie.
+			rc, err := c.Cookie(refreshTokenCookieName)
+			if err == nil && rc != nil {
+				// Parses token and checks if it valid.
+				tkn, err := jwt.ParseWithClaims(rc.Value, claims, func(token *jwt.Token) (interface{}, error) {
+					return []byte(GetRefreshJWTSecret()), nil
+				})
+				if err != nil {
+					if err == jwt.ErrSignatureInvalid {
+						c.Response().Writer.WriteHeader(http.StatusUnauthorized)
+					}
+				}
+
+				if tkn != nil && tkn.Valid {
+					// If everything is good, update tokens.
+					_ = GenerateTokensAndSetCookies(&user.User{
+						Name: claims.Name,
+					}, c)
+				}
+			}
+		}
+
+		return next(c)
+	}
 }

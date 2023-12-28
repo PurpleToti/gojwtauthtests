@@ -1,8 +1,8 @@
 package main
 
 import (
-	"echojwtauth/auth"
-	"echojwtauth/controllers"
+	"github.com/purpleToti/echoJwtAuth/auth"
+	"github.com/purpleToti/echoJwtAuth/controllers"
 
 	"github.com/golang-jwt/jwt/v4"
 	echojwt "github.com/labstack/echo-jwt"
@@ -24,6 +24,8 @@ func main() {
 		TokenLookup:  "cookie:access-token", // "<source>:<name>"
 		ErrorHandler: auth.JWTErrorChecker,
 	}))
+
+	adminGroup.Use(auth.TokenRefresherMiddleware)
 
 	adminGroup.GET("", controllers.Admin())
 
