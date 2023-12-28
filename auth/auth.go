@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -30,7 +31,7 @@ func GetRefreshJWTSecret() string {
 // We add jwt.StandardClaims as an embedded type, to provide fields like expiry time.
 type Claims struct {
 	Name string `json:"name"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // GenerateTokensAndSetCookies generates jwt token and saves it to the http-only cookie.
@@ -57,9 +58,9 @@ func generateToken(user *user.User, expirationTime time.Time, secret []byte) (st
 	// Create the JWT claims, which includes the username and expiry time.
 	claims := &Claims{
 		Name: user.Name,
-		StandardClaims: jwt.StandardClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
 			// In JWT, the expiry time is expressed as unix milliseconds.
-			ExpiresAt: expirationTime.Unix(),
+			ExpiresAt: jwt.NewNumericDate(expirationTime),
 		},
 	}
 
@@ -77,7 +78,7 @@ func generateToken(user *user.User, expirationTime time.Time, secret []byte) (st
 
 func generateAccessToken(user *user.User) (string, time.Time, error) {
 	// Declare the expiration time of the token - 1 hours.
-	expirationTime := time.Now().Add(1 * time.Hour)
+	expirationTime := time.Now().Add(2 * time.Minute)
 
 	return generateToken(user, expirationTime, []byte(GetJWTSecret()))
 }
@@ -133,7 +134,8 @@ func TokenRefresherMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		// We ensure that a new token is not issued until enough time has elapsed.
 		// In this case, a new token will only be issued if the old token is within
 		// 15 mins of expiry.
-		if time.Unix(claims.ExpiresAt, 0).Sub(time.Now()) < 15*time.Minute {
+		if claims.ExpiresAt.Time.Sub(time.Now()) < 1*time.Minute {
+			fmt.Println("Token bientot invalide")
 			// Gets the refresh token from the cookie.
 			rc, err := c.Cookie(refreshTokenCookieName)
 			if err == nil && rc != nil {
