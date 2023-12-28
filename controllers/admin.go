@@ -11,6 +11,6 @@ func Admin() echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// Gets user cookie.
 		userCookie, _ := c.Cookie("user")
-		return c.String(http.StatusOK, fmt.Sprintf("Hi, %s! You have been authenticated!", userCookie.Value))
+		return c.String(http.StatusOK, fmt.Sprintf("Hi, %s! You have been authenticated!", userCookie.Name))
 	}
 }
