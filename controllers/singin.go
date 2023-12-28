@@ -1,11 +1,12 @@
 package controllers
 
 import (
-	"echoauthtest/auth"
-	"echoauthtest/user"
 	"net/http"
 	"path"
 	"text/template"
+
+	"github.com/purpleToti/echoJwtAuth/auth"
+	"github.com/purpleToti/echoJwtAuth/user"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"

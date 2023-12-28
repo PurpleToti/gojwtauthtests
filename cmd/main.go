@@ -1,8 +1,8 @@
 package main
 
 import (
-	"echoauthtest/auth"
-	"echoauthtest/controllers"
+	"echojwtauth/auth"
+	"echojwtauth/controllers"
 
 	"github.com/golang-jwt/jwt/v4"
 	echojwt "github.com/labstack/echo-jwt"

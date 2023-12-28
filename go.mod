@@ -3,6 +3,7 @@ module github.com/purpleToti/echoJwtAuth
 go 1.21.5
 
 require (
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/labstack/echo-jwt v0.0.0-20221127215225-c84d41a71003 // indirect

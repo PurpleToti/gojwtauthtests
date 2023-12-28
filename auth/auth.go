@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	"echoauthtest/user"
+	"github.com/purpleToti/echoJwtAuth/user"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/labstack/echo/v4"
